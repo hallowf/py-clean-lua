@@ -2,3 +2,7 @@ venv
 *.lua*
 *.test
 *.ini
+*.spec
+dist
+build
+__pycache__
