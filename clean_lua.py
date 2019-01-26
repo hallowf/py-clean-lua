@@ -13,7 +13,7 @@ ugl = "\n"
 # Args
 arg_parser = argparse.ArgumentParser("create_build_lua")
 arg_parser.add_argument(
-    "-ugl", "--ugglify", help="Replaces new lines with spaces", action="store_true")
+    "-ugl", "--uglify", help="Replaces new lines with spaces", action="store_true")
 arg_parser.add_argument("-clW", "--clearWhites",
                         help="Removes excess whitespaces", action="store_true")
 arg_parser.add_argument("-remG", "--removeGlobals",
@@ -127,7 +127,8 @@ def check_and_set_args(args):
                 clear_whites = True
             if config["DEFAULT"]["removeGlobals"]:
                 G_to_rem = config.get("DEFAULT", "toRem").split("\n")
-            if config["DEFAULT"]["ugglify"]:
+            if config["DEFAULT"]["uglify"]:
+                sys.stdout.write("Ugliffy True")
                 ugl = " "
         else:
             raise FileNotFoundError

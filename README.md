@@ -12,6 +12,15 @@
 - -uC/--useConfig
   * Use configuration file see [Default Config file](#-default-config-file)
 
+### Parser
+[ 'func',
+    'x',
+    [ 'a', 'b', 'c' ],
+    [ [ 'ass', 'l', 'p' ], [ 'ass', 'x', 'z' ]
+  ]
+]
+
+
 ### Default Config file
 
 ```
