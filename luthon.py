@@ -1,5 +1,6 @@
 import ply.lex as lex
 import ply.yacc as yacc
+import more_itertools as mit
 
 
 class PEBCAK(Exception):
@@ -41,7 +42,7 @@ tokens = (
 )
 
 reserved = {key: key.upper()
-            for key in ['if', 'else', 'elseif', 'function', 'end', 'while', 'do', 'for', 'nil', 'then']}
+            for key in ['if', 'else', 'elseif', 'function', 'end', 'while', 'do', 'for', 'nil', 'then', 'and', 'or']}
 
 # IMPORTANT: add reserved keywords to tokens
 for tup in reserved.items():
@@ -74,7 +75,9 @@ t_CONCATSTR = r'\.\.'
 precedence = (
     ('left', 'LESS', 'GREATER', 'ISEQUAL'),
     ('left', 'TIMES', 'DIVIDE'),
-    ('left', 'PLUS', 'MINUS')
+    ('left', 'PLUS', 'MINUS'),
+    ('left', 'OR'),
+    ('left', 'AND')
 )
 
 
@@ -169,8 +172,8 @@ def p_elseclauses(p):
     print("elseclauses", [*p])
     if len(p) == 1:
         pass
-    elif p[1] == 'elif':
-        p[0] = [p[2], p[4], *p[5]]
+    elif p[1] == 'elseif':
+        p[0] = ["elseif", p[2], p[4], *p[5]]
     else:
         p[0] = ["else", [p[2]]]
 
@@ -187,16 +190,33 @@ def p_condstate(p):
             p[0] = [p[1], *p[2]]
 
 
+def p_andor(p):
+    '''andor : expression AND expression
+             | expression OR expression'''
+    print('andor', [*p])
+    print('andor len', len(p))
+    if len(p[3]) == 1:
+        p[0] = [p[2].lower(), p[1], p[3]]
+
+
 def p_condition(p):
     '''condition : IF expression THEN END
                  | IF expression THEN condstate END
                  | IF expression THEN condstate elseclauses END'''
+    last = [*p][-1]
+    penult = [*p][-2]
     print("cond", [*p])
-    # print("cond", [*p])
-    if p[4] == "end":
-        p[0] = ["cond", p[2]]
-    elif p[5] == "end":
-        p[0] = ["cond", p[2], p[4]]
+    print("cond", len(p))
+    if penult == "then" and last == 'end':
+        if p[3][0] == "and" or p[3][0] == "or":
+            p[0] = ["cond", p[2], p[3]]
+        else:
+            p[0] = ["cond", p[2]]
+    elif last == "end" and penult[0] != "else" or penult[0] != "elseif":
+        if p[3][0] == "and" or p[3][0] == "or":
+            p[0] = ["cond", p[2], p[3], p[4]]
+        else:
+            p[0] = ["cond", p[2], p[4]]
     else:
         p[0] = ["cond", p[2], p[4], p[5]]
 
@@ -251,7 +271,8 @@ def p_expression(p):
                   | NUMBER
                   | NAME
                   | funccall
-                  | isequal'''
+                  | isequal
+                  | andor'''
     p[0] = p[1]
 
 
@@ -336,6 +357,13 @@ def uglify(ast):
             return "function {}({}){} end".format(node[1], ",".join(node[2]), " ".join([uglify_node(statement) for statement in node[3]]))
         elif type == 'ieq':
             return "{}=={}".format(node[1], node[2])
+        elif type == 'and':
+            if len(node[1]) == 1:
+                return "and {}".format(node[1])
+            else:
+                return "and {}".format(uglify_node(node[1]))
+        elif type == 'or':
+            return "or {}".format(node[1])
         elif type == 'funccall':
             print("funccall", [*node])
             if len(node) > 2:
@@ -355,13 +383,22 @@ def uglify(ast):
         elif type == 'cond':
             print("cond", [*node])
             print("condlen", len(node))
-            if len(node) == 2:
-                return "if {} then end".format(node[1])
-            elif len(node) == 3:
-                if isinstance(node[2][0], str):
-                    return "if {} then {} end".format(node[1], uglify_node(node[2]))
+            if len(node) <= 3:
+                if isinstance(node[1], str):
+                    if node[2][0] == 'and' or node[2][0] == 'or':
+                        return "if {} {} then end".format(node[1], uglify_node(node[2]))
+                    else:
+                        return "if {} then end".format(node[1])
                 else:
-                    return "if {} then {} end".format(node[1], " ".join([uglify_node(statem) for statem in node[2]]))
+                    if node[2][0] == 'and' or node[2][0] == 'or':
+                        return "if {} {} then end".format(uglify_node(node[1]), uglify_node(node[2]))
+                    else:
+                        return "if {} then end".format(uglify_node(node[1]))
+            elif node[-2] != "then" and node[-1] != "end":
+                if isinstance(node[2][0], str):
+                    return "if {} {} then {} end".format(node[1], uglify_node(node[2]))
+                else:
+                    return "if {} {} then {} end".format(node[1], " ".join([uglify_node(statem) for statem in node[2]]))
             else:
                 if node[3][0] == "else":
                     if isinstance(node[2][0], str):
@@ -376,7 +413,7 @@ def uglify(ast):
             else:
                 return "{}{}{}".format(uglify_node(node[1]), node[2], node[3])
         else:
-            raise PEBCAK("Invalid type", type)
+            raise PEBCAK("Invalid type " + type, node)
     return uglify_node(ast)
 
 
@@ -397,7 +434,7 @@ def luthon(ast):
             else:
                 return "{}{}{}".format(node[1], node[2], "".join([luthon_node(comp) for comp in node[3]]))
         else:
-            assert False
+            raise PEBCAK("Invalid type " + str(type), node)
     return luthon_node(ast)
 
 
