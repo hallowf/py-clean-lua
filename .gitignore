@@ -8,3 +8,4 @@ build
 __pycache__
 parser.out
 parsetab.py
+py_build.py

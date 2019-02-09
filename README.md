@@ -20,6 +20,21 @@
   ]
 ]
 
+### Notes
+É uma expression se podes retornar 
+
+### Operators
+
+This does not seem to work due to not being able to set precedence
+```
+t_OP = r'[+\-/*]|>=?|<=?|=='
+
+def p_binop(p):
+  '''op : expression OP expression'''
+  p[0] = p[1]
+
+```
+
 
 ### Default Config file
 
