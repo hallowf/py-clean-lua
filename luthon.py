@@ -73,6 +73,7 @@ t_COMMA = r','
 t_STR = r'\'(.*)*\'|\"(.*)*\"'
 t_MULTISTR = r'\['
 t_CONCATSTR = r'\.\.'
+t_IPAIRS = r'ipairs'
 
 # https://www.dabeaz.com/ply/ply.html#ply_nn27
 precedence = (
@@ -102,7 +103,7 @@ def t_NUMBER(t):
 
 def t_FLOAT(t):
     r'\-?[0-9]+[.][0-9]+'
-    #t.value = float(t.value)
+    t.value = float(t.value)
     print(t)
     return t
 
@@ -425,7 +426,7 @@ def uglify(ast):
                 return "for {} ={} do end".format(node[1], a_node)
         elif type == 'and' or type == 'or' or type == "ieq":
             prnt("andorieq", node)
-            op = "and" if type == "and" else ("or" if type == "or" else "==")
+            op = type if type == "and" or type == "or" else "=="
             a_node = node[1] if len(node[1]) == 1 else uglify_node(node[1])
             b_node = node[2] if len(node[2]) == 1 else uglify_node(node[2])
             return "{} {} {}".format(a_node, op, b_node)
